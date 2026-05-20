@@ -1,6 +1,7 @@
 python-dotenv
 pandas
 numpy
-pymongo
+pymongo[srv]==4.8.0
 certifi
+dnspython
 ## -e .
