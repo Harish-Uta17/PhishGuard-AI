@@ -5,4 +5,5 @@ pymongo[srv]==4.8.0
 certifi
 dnspython
 scikit-learn
+pyaml
 ## -e .
