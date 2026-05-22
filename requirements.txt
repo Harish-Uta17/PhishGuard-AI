@@ -11,4 +11,9 @@ dagshub
 fastapi
 uvicorn
 python-multipart
+streamlit
+plotly
+requests
+psutil
+python-dateutil
 ## -e .

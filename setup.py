@@ -13,20 +13,18 @@ def get_requirements()-> List[str]:
     '''
     requirement_lst:List[str] = []
     try:
-         with open('requirements.txt','r') as file:
-             lines = file.readlines()
+        with open('requirements.txt','r', encoding='utf-8') as file:
+            lines = file.readlines()
         # read lines from the file
-             for line in lines:
-                 requirement = line.strip()
-           # ignore empty lines and -e. 
-                 if requirement and requirement != '-e .':  
-                    requirement_lst.append(requirement)
+        for line in lines:
+            requirement = line.strip()
+            # ignore empty lines and -e. 
+            if requirement and requirement != '-e .':  
+                requirement_lst.append(requirement)
     except Exception as e:
         print(f"Error reading requirements.txt: {e}")
     
     return requirement_lst
-
-print(get_requirements())
 
 setup(
     name='NetworkSecurity',
@@ -34,5 +32,6 @@ setup(
     author = 'Harish Kumar',
     author_email= "utaharish96@gmail.com",
     packages=find_packages(),
-    install_requires=get_requirements()
+    include_package_data=True,
+    install_requires=get_requirements(),
 )
