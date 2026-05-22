@@ -37,7 +37,7 @@ def save_numpy_array_data(file_path: str, array: np.array):
         dir_path = os.path.dirname(file_path)
         os.makedirs(dir_path, exist_ok=True)
         with open(file_path, "wb") as file_obj:
-            np.save(file_obj, array)
+            pickle.dump(array, file_obj)
     except Exception as e:
         raise NetworkSecurityException(e, sys) from e
     
@@ -69,7 +69,7 @@ def load_numpy_array_data(file_path: str) -> np.array:
     """
     try:
         with open(file_path, "rb") as file_obj:
-            return np.load(file_obj)
+            return pickle.load(file_obj)
     except Exception as e:
         raise NetworkSecurityException(e, sys) from e
     
