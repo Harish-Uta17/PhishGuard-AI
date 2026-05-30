@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import io
 from pathlib import Path
 import os
 import re
@@ -727,7 +728,7 @@ class DashboardClient:
     def _api_url(self, path: str) -> str:
         return f"{self.api_base_url}{path}"
 
-    def _request_json(self, method: str, path: str, **kwargs) -> Dict | None:
+    def _request_json(self, method: str, path: str, **kwargs):
         if not self._has_api():
             return None
         try:
@@ -761,15 +762,33 @@ class DashboardClient:
         return prediction
 
     def predict_batch(self, dataframe: pd.DataFrame) -> pd.DataFrame:
+        if self._has_api():
+            csv_bytes = dataframe.to_csv(index=False).encode("utf-8")
+            remote = self._request_json(
+                "POST",
+                "/batch-predict",
+                files={"file": ("batch.csv", io.BytesIO(csv_bytes), "text/csv")},
+            )
+            if isinstance(remote, dict):
+                records = remote.get("results", [])
+                for record in records:
+                    prediction_store.append(record)
+                return pd.DataFrame(records)
         predictions = model_service.predict_dataframe(dataframe, source="dashboard")
         for record in predictions.to_dict(orient="records"):
             prediction_store.append(record)
         return predictions
 
     def recent_history(self, limit: int = 200) -> List[Dict]:
+        remote = self._request_json("GET", f"/history?limit={limit}")
+        if isinstance(remote, list):
+            return remote
         return prediction_store.load(limit=limit)
 
     def threat_stats(self) -> Dict:
+        remote = self._request_json("GET", "/threat-stats")
+        if isinstance(remote, dict):
+            return remote
         history = self.recent_history(limit=500)
         return build_threat_statistics(history)
 
