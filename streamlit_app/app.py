@@ -815,6 +815,7 @@ def render_executive() -> None:
     info = client.model_info()
     health = client.health()
     active_section = st.session_state.get("active_section")
+    history_backend = health.get("history_backend", "file")
     render_hero(
         "PhishGuard AI",
         "AI-Powered Phishing URL Detection & Threat Intelligence Platform",
@@ -822,6 +823,7 @@ def render_executive() -> None:
             render_badge("Live telemetry", "good"),
             render_badge("URL threat analysis", "warn"),
             render_badge(health.get("status", "Healthy"), "good" if health.get("status") == "healthy" else "warn"),
+            render_badge("Durable history" if history_backend == "mongo" else "Local history", "good" if history_backend == "mongo" else "warn"),
         ],
         actions=[
             {"label": "Scan Suspicious URL", "target": "scanner", "key": "home-open-scanner"},
@@ -836,6 +838,11 @@ def render_executive() -> None:
             {"icon": "📊", "label": "Model F1", "value": f"{info.get('metrics', {}).get('f1_score', 0):.3f}", "note": "Latest artifact snapshot", "badge": render_badge("Performance", "warn")},
         ]
     )
+    if history_backend != "mongo":
+        st.markdown(
+            "<div class='empty-card'>Prediction history is using local file storage. Set <strong>MONGO_DB_URL</strong> for durable shared history, or mount <strong>PREDICTION_HISTORY_FILE</strong> on persistent storage.</div>",
+            unsafe_allow_html=True,
+        )
     st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
 
     if active_section == "scanner":
