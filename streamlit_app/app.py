@@ -911,17 +911,19 @@ def render_real_time(embedded: bool = False) -> None:
             unsafe_allow_html=True,
         )
         st.selectbox(
-            "Load a sample phishing URL",
+            "Load a sample URL",
             ["Use a sample URL"] + SAMPLE_PHISHING_URLS,
             key="phishguard-demo-url",
             on_change=load_demo_url,
         )
+        st.markdown("<div style='height:0.65rem'></div>", unsafe_allow_html=True)
         url = st.text_input(
             "Target URL",
             placeholder="https://malicious-example.com/login",
             label_visibility="visible",
             key="phishguard-scan-url",
         )
+        st.markdown("<div style='height:0.65rem'></div>", unsafe_allow_html=True)
         analyze = st.button("Analyze URL", use_container_width=True, key="phishguard-analyze-url")
     with right:
         render_section_header("Live Result", "Returned detection state and risk summary.")
