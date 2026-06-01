@@ -967,6 +967,8 @@ def render_real_time(embedded: bool = False) -> None:
                 ai_verdict = "Likely phishing attempt" if threat_status == "Threat Detected" else "Likely safe URL"
                 confidence_value = float(result.get("confidence_score", 0.0))
                 risk_level = result.get("risk_category", "Unknown")
+                reason_codes = result.get("reason_codes", [])
+                heuristic_score = float(result.get("heuristic_score", 0.0) or 0.0)
 
                 st.markdown(
                     f"""
@@ -1007,6 +1009,12 @@ def render_real_time(embedded: bool = False) -> None:
                     unsafe_allow_html=True,
                 )
                 st.success(f"The platform classified the URL as {result.get('prediction', 'Unknown').lower()} with {format_percentage(confidence_value)} confidence.")
+                if reason_codes:
+                    pretty_reasons = ", ".join(reason_codes)
+                    st.markdown(
+                        f"<div class='panel-card'><div class='panel-title'>Why it was flagged</div><div class='panel-subtitle'>{pretty_reasons}</div><div class='panel-subtitle'>Heuristic score: {heuristic_score:.2f}</div></div>",
+                        unsafe_allow_html=True,
+                    )
             return
 
         with result_placeholder.container():
