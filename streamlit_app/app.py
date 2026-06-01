@@ -969,6 +969,13 @@ def render_real_time(embedded: bool = False) -> None:
                 risk_level = result.get("risk_category", "Unknown")
                 reason_codes = result.get("reason_codes", [])
                 heuristic_score = float(result.get("heuristic_score", 0.0) or 0.0)
+                risk_score = float(result.get("risk_score", heuristic_score) or heuristic_score)
+                triggered_indicators = result.get("triggered_indicators", [])
+                suspicious_keywords = result.get("suspicious_keywords", [])
+                explanation = result.get("explanation", "")
+                risk_breakdown = result.get("risk_score_breakdown", {}) or {}
+                contribution_breakdown = result.get("feature_contribution_breakdown", []) or []
+                text_evidence = result.get("text_evidence", {}) or {}
 
                 st.markdown(
                     f"""
@@ -994,6 +1001,11 @@ def render_real_time(embedded: bool = False) -> None:
                                 <div class="score-value">{ai_verdict}</div>
                                 <div class="score-meta">Assistant conclusion</div>
                             </div>
+                            <div class="score-card">
+                                <div class="score-label">Risk Meter</div>
+                                <div class="score-value">{format_percentage(risk_score)}</div>
+                                <div class="score-meta">Hybrid risk score</div>
+                            </div>
                         </div>
                     </div>
                     """,
@@ -1004,11 +1016,70 @@ def render_real_time(embedded: bool = False) -> None:
                     use_container_width=True,
                     config={"displayModeBar": False, "staticPlot": True},
                 )
+                st.plotly_chart(
+                    confidence_gauge(risk_score, title="Risk Meter"),
+                    use_container_width=True,
+                    config={"displayModeBar": False, "staticPlot": True},
+                )
                 st.markdown(
                     f"<div class='analysis-time'><span class='pill good'>Analyzed at {format_display_time(result.get('timestamp', ''))}</span></div>",
                     unsafe_allow_html=True,
                 )
                 st.success(f"The platform classified the URL as {result.get('prediction', 'Unknown').lower()} with {format_percentage(confidence_value)} confidence.")
+                if triggered_indicators:
+                    st.markdown(
+                        "<div class='panel-card'><div class='panel-title'>Triggered Indicators</div><div class='panel-subtitle'>" +
+                        " ".join(f'<span class="pill danger">{indicator}</span>' for indicator in triggered_indicators) +
+                        "</div></div>",
+                        unsafe_allow_html=True,
+                    )
+                if suspicious_keywords:
+                    st.markdown(
+                        "<div class='panel-card'><div class='panel-title'>Suspicious Keywords Found</div><div class='panel-subtitle'>" +
+                        ", ".join(suspicious_keywords) +
+                        "</div></div>",
+                        unsafe_allow_html=True,
+                    )
+                if explanation:
+                    st.markdown(
+                        f"<div class='panel-card'><div class='panel-title'>Explanation Panel</div><div class='panel-subtitle'>{explanation}</div></div>",
+                        unsafe_allow_html=True,
+                    )
+                if risk_breakdown:
+                    breakdown_df = pd.DataFrame(
+                        [{"indicator": key, "score": value} for key, value in risk_breakdown.items()]
+                    ).sort_values(by="score", ascending=False)
+                    if not breakdown_df.empty:
+                        fig = px.bar(
+                            breakdown_df.head(10),
+                            x="score",
+                            y="indicator",
+                            orientation="h",
+                            title="Risk Score Breakdown",
+                            color="score",
+                            color_continuous_scale=[[0, "#27f5ee"], [1, "#8b5cf6"]],
+                        )
+                        fig.update_layout(coloraxis_showscale=False)
+                        st.plotly_chart(chart_layout(fig, height=360), use_container_width=True)
+                if contribution_breakdown:
+                    contribution_df = pd.DataFrame(contribution_breakdown)
+                    if not contribution_df.empty and "impact" in contribution_df.columns:
+                        fig = px.bar(
+                            contribution_df.head(8),
+                            x="impact",
+                            y="feature",
+                            orientation="h",
+                            title="Feature Contribution Breakdown",
+                            color="impact",
+                            color_continuous_scale=[[0, "#27f5ee"], [1, "#ff4d6d"]],
+                        )
+                        fig.update_layout(coloraxis_showscale=False)
+                        st.plotly_chart(chart_layout(fig, height=340), use_container_width=True)
+                if text_evidence:
+                    st.markdown(
+                        f"<div class='panel-card'><div class='panel-title'>TF-IDF Evidence</div><div class='panel-subtitle'>Malicious similarity: {text_evidence.get('malicious_similarity', 0.0):.3f} | Benign similarity: {text_evidence.get('benign_similarity', 0.0):.3f}</div><div class='panel-subtitle'>Top n-grams: {', '.join(text_evidence.get('top_ngrams', [])) or 'None'}</div></div>",
+                        unsafe_allow_html=True,
+                    )
                 if reason_codes:
                     pretty_reasons = ", ".join(reason_codes)
                     st.markdown(
@@ -1183,7 +1254,7 @@ def render_model_intelligence() -> None:
             st.plotly_chart(chart_layout(fig, height=420), use_container_width=True)
     render_section_header("Model Snapshot", "Key artifact metadata exposed by the serving layer.")
     st.code(
-        f"Model: {info.get('model_name')}\nArtifacts: {info.get('trained_artifact_dir')}\nFeature count: {info.get('feature_count')}",
+        f"Model: {info.get('model_name')}\nArtifacts: {info.get('trained_artifact_dir')}\nFeature count: {info.get('feature_count')}\nDecision threshold: {info.get('decision_threshold')}\nHybrid detection: {info.get('hybrid_detection')}",
         language="text",
     )
 
